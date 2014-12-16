@@ -56,21 +56,21 @@ public:
     void Insert(const T & value) {
         SearchPath path;
         if (!this->Find(value, path)) {
-            ListNode * elem = new ListNode;
-            elem->mData = value;
+            ListNode * newElement = new ListNode;
+            newElement->mData = value;
+            ListNode * previous = path[-1];
 
-            elem->mTower.push_back(path[-1]->mTower[0]); // point to next, floor = 1
-            path[-1]->mTower[0] = elem; // prev point to me
-
+            // level 0 connections
+            newElement->mTower.push_back(previous->mTower[0]);
+            previous->mTower[0] = newElement;
+            
             int floor = 1;
-            ListNode * next = elem->mTower[0];
             while (makeFloor()) {
-                next = atDistance(next, 1 << (floor-1));
-                //next = atDistance(elem, 1 << floor);
-                elem->mTower.push_back(next);
+                int stepBack = -(floor + 1);
+                newElement->mTower.push_back(path[floor]->mTower[floor]);
+                path[floor]->mTower[floor] = newElement;
                 ++floor;
             }
-            for_each(elem->mTower.begin(), elem->mTower.end(), std::mem_fn(&SkipList::fixTower));
         }
 
     }
@@ -78,18 +78,17 @@ public:
     bool Find(const T & value, SearchPath & path = SearchPath()) const {
         int shift_down = -mHead.mTower.size();
         const ListNode * current = mHead.mTower[shift_down];
+        
         path.push_back(current);
-
-        while (-shift_down <= current->mTower.height()) {
-            while (value > current->mTower[shift_down]->mData) {
-                current = current->mTower[shift_down];
-            }
-            if (path[-1] != current) {
+        while (-shift_down >= 0) {
+            while (current->mTower[shift_down]->mData > value) {
+                --shift_down;
                 path.push_back(current);
             }
-            ++shift_down; // go down a floor
+            current = current->mTower[shift_down];
         }
-        return current->mData == value;
+        
+        return path[-1]->mData == value;        
     }
 
     void Delete(const T & value) {
@@ -110,24 +109,6 @@ public:
 private:
     bool makeFloor() {
         return false;
-    }
-
-    void fixTower(ListNode * target) {
-        int floor = 0;
-        std::transform(target->mTower.begin(), target->mTower.end(), target->mTower.begin(), [&floor, this] (ListNode *& next) {
-            return this->atDistance(next, 1 << floor++);
-        });
-    }
-
-    ListNode * atDistance(ListNode * source, int dist) {
-        while (dist) {
-            int floor = 0;
-            while (dist > (1 << floor) && floor < source->mTower.height()) {
-                ++floor;
-            }
-            dist -= floor;
-            source = source->mTower[floor];
-        }
     }
 };
 

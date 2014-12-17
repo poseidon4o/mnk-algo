@@ -16,18 +16,18 @@ class SkipList {
     struct ExtVector: std::vector<T> {
          
         // support negative indexing
-        ListNode *& operator[](int idx) {
+        T & operator[](int idx) {
             if (idx >= 0) {
-                return this->operator[](idx);
+                return std::vector<T>::operator[](idx);
             } else {
-                return this->operator[](size() - idx - 1);
+                return std::vector<T>::operator[](size() + idx);
             }
         }
-        ListNode * operator[](int idx) const {
+        const T & operator[](int idx) const {
             if (idx >= 0) {
-                return this->operator[](idx);
+                return std::vector<T>::operator[](idx);
             } else {
-                return this->operator[](size() - idx - 1);
+                return std::vector<T>::operator[](size() + idx);
             }
         }
 
@@ -37,7 +37,7 @@ class SkipList {
     };
 
 
-    typedef ExtVector<const ListNode *> SearchPath;
+    typedef ExtVector<ListNode *> SearchPath;
     struct ListNode {
         T mData;
         ExtVector<ListNode*> mTower;
@@ -48,14 +48,19 @@ class SkipList {
 
     friend std::ostream & operator<<(std::ostream & output, const SkipList & list);
 public:
+
     SkipList(const T & min, const T & max) {
         mHead.mData = min;
         mTail.mData = max;
+        for (int c = 0; c < maxHeight; ++c) {
+            mHead.mTower.push_back(&mTail);
+            mTail.mTower.push_back(NULL);
+        }
     }
 
-    void Insert(const T & value) {
+    bool Insert(const T & value) {
         SearchPath path;
-        if (!this->Find(value, path)) {
+        if (!find(value, path, true)) {
             ListNode * newElement = new ListNode;
             newElement->mData = value;
             ListNode * previous = path[-1];
@@ -67,35 +72,32 @@ public:
             int floor = 1;
             while (makeFloor()) {
                 int stepBack = -(floor + 1);
-                newElement->mTower.push_back(path[floor]->mTower[floor]);
-                path[floor]->mTower[floor] = newElement;
+                newElement->mTower.push_back(path[stepBack]->mTower[floor]);
+                path[stepBack]->mTower[floor] = newElement;
                 ++floor;
             }
+            return true;
         }
-
+        return false;
     }
 
-    bool Find(const T & value, SearchPath & path = SearchPath()) const {
-        int shift_down = -mHead.mTower.size();
-        const ListNode * current = mHead.mTower[shift_down];
-        
-        path.push_back(current);
-        while (-shift_down >= 0) {
-            while (current->mTower[shift_down]->mData > value) {
-                --shift_down;
-                path.push_back(current);
-            }
-            current = current->mTower[shift_down];
-        }
-        
-        return path[-1]->mData == value;        
+    bool Find(const T & value, SearchPath & path = SearchPath()) {
+        return find(value, path, true);
     }
 
-    void Delete(const T & value) {
+    bool Delete(const T & value) {
         SearchPath path;
-        if (this->Find(value, path)) {
+        if (find(value, path, false)) {
+            ListNode * target = path[-1];
 
+            for(int c = 0; c < static_cast<int>(target->mTower.size()); ++c) {
+                path[-(c + 1)]->mTower[c] = target->mTower[c];
+            }
+
+            delete target;
+            return true;
         }
+        return false;
     }
 
     ~SkipList() {
@@ -107,24 +109,59 @@ public:
     }
 
 private:
+
+    bool find(const T & value, SearchPath & path, bool isPathInsert) {
+        int shiftDown = -1;
+        ListNode * current = &mHead;
+        
+        path.push_back(current);
+        while (-shiftDown <= current->mTower.height()) {
+            int lastHeight = current->mTower.height();
+            while (-shiftDown <= current->mTower.height() && current->mTower[shiftDown] && 
+                (current->mTower[shiftDown]->mData > value ||
+                (!isPathInsert && current->mTower[shiftDown]->mData == value)) // if this wont be insert path we want to comapre using >=
+            ) {
+                --shiftDown;
+                path.push_back(current);
+            }
+            
+            if (-shiftDown > current->mTower.height() || current->mTower[shiftDown] == NULL) {
+                return false;
+            } else {
+                current = current->mTower[shiftDown];
+                shiftDown = shiftDown + (lastHeight - current->mTower.height());
+                shiftDown = -1;
+            }
+        }
+        
+        return path[-1]->mData == value;
+    }
+
+
     bool makeFloor() {
-        return false;
+        return rand() & 1;
     }
 };
 
 std::ostream & operator<<(std::ostream & output, const SkipList & list) {
     const SkipList::ListNode * current = &list.mHead;
-    while (current->mTower[0]) {
+    while (current) {
+        output << current->mData;
         for (int c = 0; c < current->mTower.height(); ++c) {
-            output << current->mTower[c]->mData << "[" << current->mTower[0] << "] ";
+            output << ' ';
+            if (current->mTower[c]) {
+                output << current->mTower[c]->mData;
+            } else {
+                output << "000";
+            }
         }
         output << std::endl;
+        current = current->mTower[0];
     }
     return output;
 }
 
-template<typename T>
-const int SkipList<T>::maxHeight = 20;
+const int SkipList::maxHeight = 20;
 
 
 #endif // #define SKIPLIST_INCLUDED_H

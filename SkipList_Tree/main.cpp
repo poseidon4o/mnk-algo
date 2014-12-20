@@ -1,14 +1,23 @@
 #include "SkipList.h"
+
+#include <random>
+#include <chrono>
 #include <iostream>
+
 using namespace std;
 
 int main() {
     srand(10);
     SkipList sl(100, 999);
-    for(int c = 101; c < 900; ++c) {
-        sl.Insert(c);
+
+    for (int c = 0; c < 100; ++c) {
+        for (int r = 101; r < 989; ++r) {
+            sl.Insert(r);
+        }
+        for (int r = 988; r >= 101; --r) {
+            sl.Delete(r);
+        }
     }
-    cout << sl;
-    cin.get();
+
     return 0;
 };

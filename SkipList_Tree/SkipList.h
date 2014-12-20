@@ -44,12 +44,14 @@ class SkipList {
     };
 
     ListNode mHead, mTail;
+    int mElementCount;
+
     static const int maxHeight;
 
     friend std::ostream & operator<<(std::ostream & output, const SkipList & list);
 public:
 
-    SkipList(const T & min, const T & max) {
+    SkipList(const T & min, const T & max): mElementCount(0) {
         mHead.mData = min;
         mTail.mData = max;
         for (int c = 0; c < maxHeight; ++c) {
@@ -69,19 +71,27 @@ public:
             newElement->mTower.push_back(previous->mTower[0]);
             previous->mTower[0] = newElement;
             
-            int floor = 1;
+            int targetFloor = 0;
             while (makeFloor()) {
+                ++targetFloor;
+            }
+
+            newElement->mTower.reserve(targetFloor + 1);
+
+            for (int floor = 1; floor <= targetFloor; ++floor) {
                 int stepBack = -(floor + 1);
                 newElement->mTower.push_back(path[stepBack]->mTower[floor]);
                 path[stepBack]->mTower[floor] = newElement;
-                ++floor;
             }
+
+            ++mElementCount;
             return true;
         }
         return false;
     }
 
-    bool Find(const T & value, SearchPath & path = SearchPath()) {
+    bool Find(const T & value) {
+        SearchPath path;
         return find(value, path, true);
     }
 
@@ -90,11 +100,16 @@ public:
         if (find(value, path, false)) {
             ListNode * target = path[-1];
 
+            // remove the element with the found value
+            path.pop_back();
+
+            // update all links pointing to this node
             for(int c = 0; c < static_cast<int>(target->mTower.size()); ++c) {
                 path[-(c + 1)]->mTower[c] = target->mTower[c];
             }
 
             delete target;
+            --mElementCount;
             return true;
         }
         return false;
@@ -113,24 +128,31 @@ private:
     bool find(const T & value, SearchPath & path, bool isPathInsert) {
         int shiftDown = -1;
         ListNode * current = &mHead;
+        path.clear();
+        path.reserve(maxHeight + 3);
+
         
         path.push_back(current);
         while (-shiftDown <= current->mTower.height()) {
             int lastHeight = current->mTower.height();
-            while (-shiftDown <= current->mTower.height() && current->mTower[shiftDown] && 
-                (current->mTower[shiftDown]->mData > value ||
-                (!isPathInsert && current->mTower[shiftDown]->mData == value)) // if this wont be insert path we want to comapre using >=
-            ) {
+            while (-shiftDown <= current->mTower.height() && current->mTower[shiftDown]->mData >= value) {
+                
+                if (isPathInsert && current->mTower[shiftDown]->mData == value) {
+                    break;
+                }
+
                 --shiftDown;
                 path.push_back(current);
             }
             
             if (-shiftDown > current->mTower.height() || current->mTower[shiftDown] == NULL) {
-                return false;
+                if (!isPathInsert && path[-1]->mTower[0] && path[-1]->mTower[0]->mData == value) {
+                    path.push_back(path[-1]->mTower[0]);
+                }
+                break;
             } else {
                 current = current->mTower[shiftDown];
                 shiftDown = shiftDown + (lastHeight - current->mTower.height());
-                shiftDown = -1;
             }
         }
         

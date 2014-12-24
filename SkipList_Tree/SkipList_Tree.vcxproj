@@ -64,6 +64,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BST.h" />
     <ClInclude Include="SkipList.h" />
   </ItemGroup>
   <ItemGroup>

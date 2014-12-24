@@ -3,13 +3,10 @@
 
 #include <list>
 #include <vector>
-#include <random>
 #include <ios>
-#include <algorithm>
-#include <functional>
 
+template <typename T>
 class SkipList {
-    typedef int T;
     struct ListNode;
 
     template<typename T>
@@ -47,8 +44,9 @@ class SkipList {
     int mElementCount;
 
     static const int maxHeight;
-
-    friend std::ostream & operator<<(std::ostream & output, const SkipList & list);
+    
+    template <typename T>
+    friend std::ostream & operator<<(std::ostream & output, const SkipList<T> & list);
 public:
 
     SkipList(const T & min, const T & max): mElementCount(0) {
@@ -76,7 +74,7 @@ public:
             previous->mTower[0] = newElement;
             
             int targetFloor = 0;
-            while (makeFloor()) {
+            while (targetFloor < maxHeight && makeFloor()) {
                 ++targetFloor;
             }
 
@@ -120,10 +118,12 @@ public:
     }
 
     ~SkipList() {
-        while (mHead.mTower[0] != &mTail) {
-            ListNode * next = mHead.mTower[0]->mTower[0];
-            delete mHead.mTower[0];
-            mHead.mTower[0] = next;
+        ListNode * n = mHead.mTower[0];
+
+        while (mElementCount--) {
+            ListNode * next = n->mTower[0];
+            delete n;
+            n = next;
         }
     }
 
@@ -169,8 +169,10 @@ private:
     }
 };
 
-std::ostream & operator<<(std::ostream & output, const SkipList & list) {
-    const SkipList::ListNode * current = &list.mHead;
+template <typename T>
+std::ostream & operator<<(std::ostream & output, const SkipList<T> & list) {
+    const SkipList<T>::ListNode * current = &list.mHead;
+  
     while (current) {
         output << current->mData;
         for (int c = 0; c < current->mTower.height(); ++c) {
@@ -178,7 +180,7 @@ std::ostream & operator<<(std::ostream & output, const SkipList & list) {
             if (current->mTower[c]) {
                 output << current->mTower[c]->mData;
             } else {
-                output << "000";
+                output << "NULL";
             }
         }
         output << std::endl;
@@ -187,7 +189,8 @@ std::ostream & operator<<(std::ostream & output, const SkipList & list) {
     return output;
 }
 
-const int SkipList::maxHeight = 20;
+template <typename T>
+const int SkipList<T>::maxHeight = 20;
 
 
 #endif // #define SKIPLIST_INCLUDED_H

@@ -60,6 +60,10 @@ public:
         }
     }
 
+    int Size() const {
+        return mElementCount;
+    }
+
     bool Insert(const T & value) {
         SearchPath path;
         if (!find(value, path, true)) {

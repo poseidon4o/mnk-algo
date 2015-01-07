@@ -11,8 +11,8 @@ using namespace std;
 using namespace chrono;
 
 void timeTest(function<void()> what, int samples) {
-    using rep = high_resolution_clock::rep;
-    
+    typedef high_resolution_clock::rep rep;
+
     duration<rep, high_resolution_clock::period> time;
 
     for (int c = 0; c < samples; ++c) {

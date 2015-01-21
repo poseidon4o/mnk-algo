@@ -20,7 +20,7 @@ class SplayTree {
         };
     private:
         union {
-            union {
+            struct {
                 bool mBad : 1;
                 path_t mPath : 4;
                 uint8_t mLevel : 3;
@@ -45,7 +45,7 @@ class SplayTree {
         }
 
         int Level() const {
-            return mData & 0x7;
+            return mLevel;
         }
 
         // return true if right
@@ -104,44 +104,78 @@ public:
     SplayTree() : mRoot(NULL) {
     }
 
-    bool Find(const T & value);
-    bool Insert(const T & value);
-    bool Remove(const T & value);
+    bool Find(const T & value) {
+        MoveData data = find(value, mRoot);
+        splay(mRoot, data, true);
+        return !data.Bad();
+    }
+
+     bool Insert(const T & value) {
+        MoveData data = insert(value, mRoot);
+        splay(mRoot, data, true);
+        return !data.Bad();
+    }
+
+    bool Remove(const T & value) {
+
+    }
 
 private:
 
-    void zig(Node * n, MoveData::path_t dir) {
-
+    void zig(Node *& parent) {
+        Node * target = parent->mLeft;
+        parent->mLeft = target->mRight;
+        target->mRight = parent;
+        parent = target;
     }
 
-    void zag(Node * n, MoveData::path_t dir) {
-
+    void zag(Node *& parent) {
+        Node * target = parent->mRight;
+        parent->mRight = target->mLeft;
+        target->mLeft = parent;
+        parent = target;
     }
 
     MoveData splay(Node *& n, MoveData data, bool force = false) {
-        if (data.Bad() || data.Level() < 2 && force == false) {
+        if (data.Bad() || data.Level() == 0) {
+            return data;
+        }
+
+        if (data.Level() < 2 && !force) {
             return data;
         }
 
         switch (data.Path())
         {
         case SplayTree::MoveData::LEFT:
+            zig(n);
             break;
         case SplayTree::MoveData::RIGHT:
+            zag(n);
             break;
         case SplayTree::MoveData::LEFT_LEFT:
+            zig(n->mLeft);
+            zig(n);
             break;
         case SplayTree::MoveData::RIGHT_RIGHT:
+            zag(n->mRight);
+            zag(n);
             break;
         case SplayTree::MoveData::LEFT_RIGHT:
+            zag(n->mLeft);
+            zig(n);
             break;
         case SplayTree::MoveData::RIGHT_LEFT:
+            zig(n->mRight);
+            zag(n);
             break;
         }
+
+        return data.Clear();
     }
 
     MoveData insert(const T & value, Node *& n) {
-        if (!n) {
+        if (!n) {  
             n = new Node();
             n->mLeft = n->mRight = NULL;
             n->mData = value;
@@ -152,25 +186,31 @@ private:
             return MoveData().Bad(true);
         } else if (value < n->mData) {
             data = insert(value, n->mLeft);
+            data.GoLeft();
         } else {
             data = insert(value, n->mRight);
+            data.GoRight();
         }
 
         return splay(n, data);
     }
 
-    bool find(const T & value, Node * n) {
+    MoveData find(const T & value, Node *& n) {
         if (!n) {
-            return false;
+            return MoveData().Bad(true);
+        }
+        MoveData data;
+        if (n->mData == value) {
+            return MoveData();
+        } else if (value < n->mData) {
+            data = find(value, n->mLeft);
+            data.GoLeft();
+        } else {
+            data = find(value, n->mRight);
+            data.GoRight();
         }
 
-        if (n->mData == value) {
-            return true;
-        } else if (value < n->mData) {
-            return find(value, n->mLeft);
-        } else {
-            return find(value, n->mRight);
-        }
+        return splay(n, data);
     }
 };
 

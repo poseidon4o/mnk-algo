@@ -115,7 +115,7 @@ private:
 
             int me[4] = { 0, 0, 0, 0 }, opp[4] = { 0, 0, 0, 0 };
             board.GetImmediateSums(me, c, top, color);
-            board.GetImmediateSums(me, c, top, SWITCH_COLOR(color));
+            board.GetImmediateSums(opp, c, top, SWITCH_COLOR(color));
             for (int c = 0; c < 4; ++c) {
                 value += (me[c] >= 3 ? 200 : me[c]) - (opp[c] >= 3 ? 100 : opp[c]);
             }

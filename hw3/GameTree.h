@@ -1,4 +1,3 @@
-
 #ifndef GAME_TREE_INCLUDED
 #define GAME_TREE_INCLUDED
 
@@ -6,9 +5,6 @@
 
 #include <array>
 #include <limits>
-
-#include <iostream>
-using namespace std;
 
 const int GAME_PINF = std::numeric_limits<int>::max();
 const int GAME_NINF = std::numeric_limits<int>::min();
@@ -19,9 +15,7 @@ class GameTree {
 
     struct node {
         std::array<node *, GAME_WIDTH> turns;
-        node() {
-            fill(turns.begin(), turns.end(), nullptr);
-        }
+        node(): turns{ { 0, 0, 0, 0, 0, 0, 0 } } {}
     };
 
     GameColor nextMove, maximizingPlayer;
@@ -46,13 +40,25 @@ public:
     }
 
     void MakeBestMove() {
-        int score;
-        int col = min_max(nextMove, field, maxDepth, nextMove, score);
-
-        if (col == -1) {
-            throw 42;
+        int best = GAME_NINF, idx = 0;
+        GameField board(field);
+        
+        for (int c = 0; c < GAME_WIDTH; ++c) {
+            if (board.CanDropAt(c)) {
+                idx = c;
+                break;
+            }
         }
-        MakeMove(col);
+        
+        for (int c = 0; c < GAME_WIDTH; ++c) {
+            if (!board.CanDropAt(c)) continue;
+            int thisNode = alpha_beta(board.DroppedAt(c, nextMove), GAME_NINF, GAME_PINF, SWITCH_COLOR(nextMove), maxDepth - 1);
+            if (best < thisNode) {
+                best = thisNode;
+                idx = c;
+            }
+        }
+        MakeMove(idx);
     }
 
     GameColor NextToMove() const {
@@ -61,45 +67,6 @@ public:
 private:
     GameTree(const GameTree &) = delete;
     GameTree & operator=(const GameTree &) = delete;
-
-    int min_max(const GameColor ai, GameField board, int depth, GameColor onMove, int & bestScore) {
-		bestScore = (ai == onMove) ? GAME_NINF : GAME_PINF;
-        int col = -1, row = -1;
-        int score = 0;
-
-        if (!depth || board.HasWinner()) {
-            bestScore = evalFor(board, onMove);
-            return col;
-        }
-
-        for (int c = 0; c < GAME_WIDTH; ++c) {
-            if (!board.CanDropAt(c)) {
-                continue;
-            }
-            min_max(ai, board.DroppedAt(c, onMove), depth - 1, SWITCH_COLOR(onMove), score);
-            if (depth == maxDepth) {
-                cout << score << ' ';
-            }
-            if (ai == onMove) {
-                if (score > bestScore) {
-                    bestScore = score;
-                    col = c;
-                }
-            } else {
-                if (score < bestScore) {
-                    bestScore = score;
-                    col = c;
-                }
-            }
-        }
-
-        if (depth == maxDepth) {
-            cout << endl;
-        }
-
-        return col;
-    }
-
 
     int alpha_beta(GameField board, int alpha, int beta, GameColor color, int remainingSteps) {
         if (!remainingSteps || board.HasWinner()) {
@@ -128,27 +95,32 @@ private:
     }
 
     int evalFor(const GameField & board, GameColor color) {
-        static int evalTable[GAME_HEIGHT][GAME_WIDTH] = {
-            { 3, 4, 5, 7, 5, 4, 3 },
-            { 4, 6, 8, 10, 8, 6, 4 },
-            { 5, 8, 11, 13, 11, 8, 5 },
-            { 5, 8, 11, 13, 11, 8, 5 },
-            { 4, 6, 8, 10, 8, 6, 4 },
-            { 3, 4, 5, 7, 5, 4, 3 }
-        };
+        int value = 0;
 
-        int score = 0;
-        for (int c = 0; c < GAME_HEIGHT; ++c) {
-            for (int r = 0; r < GAME_WIDTH; ++r) {
-                if (board[r][c] == color) {
-                    score += evalTable[c][r];
-                } else if (board[r][c] == SWITCH_COLOR(color)) {
-                    score -= evalTable[c][r];
-                }
-            }
+        if (board.HasWinner()) {
+            return GAME_NINF;
         }
 
-        return score;
+        for (int c = 0; c < GAME_WIDTH; ++c) {
+            if (!board.CanDropAt(c)) {
+                continue;
+            }
+            int top = GAME_HEIGHT - 1;
+            for (int r = top; r >= 0; --r) {
+                top = r;
+                if (board[c][r] == NONE) {
+                    break;
+                }
+            }
+
+            int me[4] = { 0, 0, 0, 0 }, opp[4] = { 0, 0, 0, 0 };
+            board.GetImmediateSums(me, c, top, color);
+            board.GetImmediateSums(me, c, top, SWITCH_COLOR(color));
+            for (int c = 0; c < 4; ++c) {
+                value += (me[c] >= 3 ? 200 : me[c]) - (opp[c] >= 3 ? 100 : opp[c]);
+            }
+        }
+        return value;
     }
 };
 

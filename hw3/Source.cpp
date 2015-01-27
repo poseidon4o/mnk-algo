@@ -5,7 +5,7 @@ using namespace std;
 
 int main() {
 
-    GameTree tree(RED, 7);
+    GameTree tree(RED, 4);
     const GameField & field = tree.GetField();
 
     while (!field.HasWinner()) {
@@ -24,8 +24,6 @@ int main() {
     cout << "YOU " << (field.GetWinner() == RED ? "WON" : "LOST");
     cout << endl << field;
     cin.ignore();
-    cin.get();
-    cin.get();
     cin.get();
 
     return 0;

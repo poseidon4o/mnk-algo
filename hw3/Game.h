@@ -141,8 +141,8 @@ private:
 
 std::ostream & operator<<(std::ostream & out, const GameField & field) {
     char symbols[3];
-    symbols[RED] = 'R';
-    symbols[BLACK] = 'B';
+    symbols[RED] = 'X';
+    symbols[BLACK] = 'O';
     symbols[NONE] = ' ';
     for (int r = 0; r < GAME_HEIGHT; ++r) {
         out << "|";

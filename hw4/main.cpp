@@ -1,12 +1,10 @@
 #include "Splay.h"
+#include "AVL.h"
 
 #include <iostream>
 using namespace std;
 
 int main() {
-    SplayTree tree;
-
-
-    cin.get();
+    AVL t;
     return 0;
 }

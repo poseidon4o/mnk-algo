@@ -1,12 +1,14 @@
 #ifndef _SPLAY_H_INCLUDED_
 #define _SPLAY_H_INCLUDED_
 
+#include "TreeBase.h"
+
 #include <cstdint>
 #include <cstdlib>
 #include <cassert>
 
 template <typename T>
-class SplayTree {
+class SplayTree : TreeBase<T> {
 
     class MoveData {
     public:
@@ -104,19 +106,19 @@ public:
     SplayTree() : mRoot(NULL) {
     }
 
-    bool Find(const T & value) {
+    bool Find(const T & value) override {
         MoveData data = find(value, mRoot);
         splay(mRoot, data, true);
         return !data.Bad();
     }
 
-     bool Insert(const T & value) {
+    bool Insert(const T & value) override {
         MoveData data = insert(value, mRoot);
         splay(mRoot, data, true);
         return !data.Bad();
     }
 
-    bool Remove(const T & value) {
+    bool Remove(const T & value) override {
         // 1. splay value to root
         // 2. remove root
         // 3. join left and right subtrees

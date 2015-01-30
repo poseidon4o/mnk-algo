@@ -5,8 +5,8 @@
 #include <cstdlib>
 #include <cassert>
 
+template <typename T>
 class SplayTree {
-    typedef int T;
 
     class MoveData {
     public:
@@ -93,8 +93,8 @@ class SplayTree {
     };
 
     struct Node {
-        Node * mLeft, * mRight;
         T mData;
+        Node * mLeft, * mRight;
     };
 
     Node * mRoot;
@@ -117,10 +117,47 @@ public:
     }
 
     bool Remove(const T & value) {
+        // 1. splay value to root
+        // 2. remove root
+        // 3. join left and right subtrees
+        if (Find(value)) {
+            if (mRoot->mLeft) {
+                const T * newValue = find_max(mRoot->mLeft);
+                MoveData data = find(*newValue, mRoot->mLeft);
+                splay(mRoot->mLeft, data, true);
 
+                Node * newRoot = mRoot->mLeft;
+                newRoot->mRight = mRoot->mRight;
+                delete mRoot;
+                mRoot = newRoot;
+            } else if (mRoot->mRight) {
+                const T * newValue = find_min(mRoot->mRight);
+                MoveData data = find(*newValue, mRoot->mRight);
+                splay(mRoot->mRight, data, true);
+
+                Node * newRoot = mRoot->mRight;
+                newRoot->mLeft = mRoot->mLeft;
+                delete mRoot;
+                mRoot = newRoot;
+            } else {
+                delete mRoot;
+                mRoot = NULL;
+            }
+
+            return true;
+        }
+        return false;
     }
 
 private:
+
+    const T * find_min(Node * root) {
+        return root->mLeft ? find_min(root->mLeft) : &root->mData;
+    }
+
+    const T * find_max(Node * root) {
+        return root->mRight ? find_min(root->mRight) : &root->mData;
+    }
 
     void zig(Node *& parent) {
         Node * target = parent->mLeft;
@@ -162,12 +199,12 @@ private:
             zag(n);
             break;
         case SplayTree::MoveData::LEFT_RIGHT:
-            zag(n->mLeft);
-            zig(n);
-            break;
-        case SplayTree::MoveData::RIGHT_LEFT:
             zig(n->mRight);
             zag(n);
+            break;
+        case SplayTree::MoveData::RIGHT_LEFT:
+            zag(n->mLeft);
+            zig(n);
             break;
         }
 

@@ -67,7 +67,9 @@
     <ClCompile Include="..\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\AVL.h" />
     <ClInclude Include="..\Splay.h" />
+    <ClInclude Include="..\TreeBase.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -23,5 +23,11 @@
     <ClInclude Include="..\Splay.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\AVL.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TreeBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -2,6 +2,11 @@
 #define _TREAP_H_INCLUDED_
 
 #include <random>
+#include <algorithm>
+#include <limits>
+
+std::mt19937 mt(5);
+std::uniform_real_distribution<float> dist(0, 1);
 
 class TreapNode
 {
@@ -9,7 +14,7 @@ public:
 	TreapNode(int k)
 	{
 		key = k;
-		priority = (float)rand() / RAND_MAX;
+        priority = dist(mt);// (float)rand() / RAND_MAX;
 		left = 0;
 		right = 0;
 	}
@@ -24,6 +29,8 @@ class Treap
 {
 	TreapNode * root;
     friend bool valid(const Treap &);
+    friend int maxHeight(const Treap &);
+    friend int avgHeight(const Treap &);
 public:
     Treap() : root(nullptr) {
 
@@ -114,6 +121,8 @@ private:
 	Treap(const Treap&); // Do not implement me!
 };
 
+
+
 namespace {
     bool valid_heap(const TreapNode * n) {
         if (!n || (n && !n->left && !n->right)) {
@@ -142,10 +151,26 @@ namespace {
 
         return valid_bst(n->left) && valid_bst(n->right);
     }
+
+    int maxHeight(const TreapNode * n) {
+        return n ? 1 + std::max(maxHeight(n->left), maxHeight(n->right)) : 0;
+    }
+
+    int avgHeight(const TreapNode * n) {
+        return n ? 1 + (avgHeight(n->left) + avgHeight(n->right)) / 2 : 0;
+    }
 }
 
 bool valid(const Treap & treap) {
     return valid_heap(treap.root) && valid_bst(treap.root);
+}
+
+int maxHeight(const Treap & treap) {
+    return maxHeight(treap.root);
+}
+
+int avgHeight(const Treap & treap) {
+    return avgHeight(treap.root);
 }
 
 #endif // _TREAP_H_INCLUDED_

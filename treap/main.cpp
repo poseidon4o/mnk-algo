@@ -1,15 +1,21 @@
 #include "Treap.h"
 #include <cassert>
+#include <iostream>
+
+using namespace std;
 
 int main() {
     Treap t;
-    srand(5);
 
-    for (int c = 0; c < 10000000; ++c) {
+
+    for (int c = 0; c < 1000000; ++c) {
         t.insert(c);
     }
 
-    assert(valid(t));
+    cout << "Valid: " << valid(t) << endl
+        << "Max height: " << maxHeight(t) << endl
+        << "Avg height: " << avgHeight(t) << endl;
+    cin.get();
 
 	return 0;
 }

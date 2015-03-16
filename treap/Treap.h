@@ -49,7 +49,7 @@ public:
         TreapNode *& where = find(root, key);
         if (!where) {
             where = new TreapNode(key);
-            balance(root, key);
+            find(root, key, true);
         }
     }
 
@@ -58,7 +58,12 @@ public:
 	*
 	* @param key: key to be removed
 	*/
-	void remove(int key);
+    void remove(int key) {
+        TreapNode *& where = find(root, key);
+        if (where) {
+            remove(where);
+        }
+    }
 
 	/**
 	* Checks whether a given @key is already in the treap
@@ -87,33 +92,41 @@ private:
         return parent;
     }
 
-    void balance(TreapNode *& n, int key) {
-        if (!n || n->key == key) {
-            return;
-        }
-        
-        if (key < n->key) {
-            balance(n->left, key);
+    void remove(TreapNode *& n) {
+        if (!n->left && !n->right) {
+            delete n;
+            n = nullptr;
+        } else if (n->left || n->right) {
+            TreapNode * del = n;
+            n = n->left ? n->left : n->right;
+            delete del;
         } else {
-            balance(n->right, key);
-        }
-
-        if (n->right && n->right->key == key && n->right->priority > n->priority) {
-            n = left(n);
-        } else if (n->left && n->left->key == key && n->left->priority > n->priority) {
-            n = right(n);
+            if (n->left->priority > n->right->priority) {
+                n = right(n);
+                remove(n->right);
+            } else {
+                n = left(n);
+                remove(n->left);
+            }
         }
     }
 
-	TreapNode *& find(TreapNode *& n, int key) {
+	TreapNode *& find(TreapNode *& n, int key, bool heap_up = false) {
 		if (!n || n->key == key) {
 			return n;
 		}
-		if (key < n->key) {
-			return find(n->left, key);
-		} else {
-			return find(n->right, key);
-		}
+
+        TreapNode *& node = key < n->key ? find(n->left, key, heap_up) : find(n->right, key, heap_up);
+
+        if (heap_up) {
+            if (n->right && n->right->key == key && n->right->priority > n->priority) {
+                n = left(n);
+            } else if (n->left && n->left->key == key && n->left->priority > n->priority) {
+                n = right(n);
+            }
+        }
+
+        return node;
 	}
 
 
@@ -123,42 +136,40 @@ private:
 
 
 
-namespace {
-    bool valid_heap(const TreapNode * n) {
-        if (!n || (n && !n->left && !n->right)) {
-            return true;
-        }
-
-        if (n->left && n->priority < n->left->priority) {
-            return false;
-        } else if (n->right && n->priority < n->right->priority) {
-            return false;
-        }
-
-        return valid_heap(n->left) && valid_heap(n->right);
+bool valid_heap(const TreapNode * n) {
+    if (!n || (n && !n->left && !n->right)) {
+        return true;
     }
 
-    bool valid_bst(const TreapNode * n) {
-        if (!n || (n && !n->left && !n->right)) {
-            return true;
-        }
-
-        if (n->left && n->key < n->left->key) {
-            return false;
-        } else if (n->right && n->key >= n->right->key) {
-            return false;
-        }
-
-        return valid_bst(n->left) && valid_bst(n->right);
+    if (n->left && n->priority < n->left->priority) {
+        return false;
+    } else if (n->right && n->priority < n->right->priority) {
+        return false;
     }
 
-    int maxHeight(const TreapNode * n) {
-        return n ? 1 + std::max(maxHeight(n->left), maxHeight(n->right)) : 0;
+    return valid_heap(n->left) && valid_heap(n->right);
+}
+
+bool valid_bst(const TreapNode * n) {
+    if (!n || (n && !n->left && !n->right)) {
+        return true;
     }
 
-    int avgHeight(const TreapNode * n) {
-        return n ? 1 + (avgHeight(n->left) + avgHeight(n->right)) / 2 : 0;
+    if (n->left && n->key < n->left->key) {
+        return false;
+    } else if (n->right && n->key >= n->right->key) {
+        return false;
     }
+
+    return valid_bst(n->left) && valid_bst(n->right);
+}
+
+int maxHeight(const TreapNode * n) {
+    return n ? 1 + std::max(maxHeight(n->left), maxHeight(n->right)) : 0;
+}
+
+int avgHeight(const TreapNode * n) {
+    return n ? 1 + (avgHeight(n->left) + avgHeight(n->right)) / 2 : 0;
 }
 
 bool valid(const Treap & treap) {

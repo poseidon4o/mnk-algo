@@ -5,8 +5,9 @@
 #include <algorithm>
 #include <limits>
 
+typedef float TreapPriority_t;
 std::mt19937 mt(5);
-std::uniform_real_distribution<float> dist(0, 1);
+std::uniform_real_distribution<TreapPriority_t> dist(std::numeric_limits<TreapPriority_t>::min(), std::numeric_limits<TreapPriority_t>::max());
 
 class TreapNode
 {
@@ -14,12 +15,13 @@ public:
 	TreapNode(int k)
 	{
 		key = k;
+        // changed to use the whole float because just [0, 1] is not enough to cover all ints and collisions will arise
         priority = dist(mt);// (float)rand() / RAND_MAX;
 		left = 0;
 		right = 0;
 	}
 	int key;	// key provided by user
-	float priority;	// node's generated priority
+    TreapPriority_t priority;	// node's generated priority
 	TreapNode* left;	// pointer for the left subtree
 	TreapNode* right;	// pointer for the right subtree
 };
@@ -28,16 +30,37 @@ public:
 class Treap
 {
 	TreapNode * root;
+    int elements;
+
     friend bool valid(const Treap &);
     friend int maxHeight(const Treap &);
     friend int avgHeight(const Treap &);
 public:
-    Treap() : root(nullptr) {
+    Treap() : root(nullptr), elements(0) {
 
     }
 
     ~Treap() {
+        free(root);
+    }
 
+
+    /**
+    * Removes all elements from the Treap
+    *
+    */
+    void clear() {
+        elements = 0;
+        free(root);
+        root = nullptr;
+    }
+
+    /**
+    * Returns the number of elements in the Treap
+    * 
+    */
+    int size() const {
+        return elements;
     }
 
 	/**
@@ -48,6 +71,7 @@ public:
     void insert(int key) {
         TreapNode *& where = find(root, key);
         if (!where) {
+            ++elements;
             where = new TreapNode(key);
             find(root, key, true);
         }
@@ -61,6 +85,7 @@ public:
     void remove(int key) {
         TreapNode *& where = find(root, key);
         if (where) {
+            --elements;
             remove(where);
         }
     }
@@ -73,7 +98,7 @@ public:
 	*/
     bool containsKey(int key) const {
         // not breaking the interface leads to ugly casts
-        return const_cast<Treap*>(this)->find(const_cast<TreapNode*>(root), key) != NULL;
+        return const_cast<Treap*>(this)->find(const_cast<TreapNode*>(root), key) != nullptr;
     }
 
 private:
@@ -129,10 +154,19 @@ private:
         return node;
 	}
 
+    void free(TreapNode * n) {
+        if (n) {
+            free(n->left);
+            free(n->right);
+            delete n;
+        }
+    }
+
 
 	Treap& operator=(const Treap&); // Do not implement me!
 	Treap(const Treap&); // Do not implement me!
 };
+
 
 
 
@@ -183,5 +217,8 @@ int maxHeight(const Treap & treap) {
 int avgHeight(const Treap & treap) {
     return avgHeight(treap.root);
 }
+
+
+
 
 #endif // _TREAP_H_INCLUDED_

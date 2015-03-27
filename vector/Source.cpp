@@ -1,31 +1,21 @@
 #include <iostream>
 #include "vector.hpp"
-
+#include <string>
 using namespace std;
 
-struct ff {
-    char s;
-
-    ff(const ff &&) {
-
-    }
-
-    ff(int, int) {}
-
-private:
-
-    ff();
-
-    ff & operator=(const ff &);
-    
-};
 
 int main() {
-    ::vector<int> v;
+    ::vector<std::string> v;
 
-    for (int c = 0; c < 10; ++c) {
-        v.push_back(c);
+    for (int c = 0; c < 3; ++c) {
+        v.push_back(std::string("test"));
     }
-    cout << 5;
+
+    ::vector<std::string> q(v);
+
+    q = v;
+
+
+    cout << v.size();
     cin.get();
 }

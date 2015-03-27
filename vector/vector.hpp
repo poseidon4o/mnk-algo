@@ -21,25 +21,61 @@ template <typename T>
 class vector {
 
     template <typename Q>
-    using CanDefaultAssign = typename bool_type<!std::is_copy_constructible<Q>::value && std::is_default_constructible<Q>::value && std::is_copy_assignable<Q>::value>;
+    using CanDefaultAssign = bool_type<!std::is_copy_constructible<Q>::value && std::is_default_constructible<Q>::value && std::is_copy_assignable<Q>::value>;
 
     template <typename Q>
-    using CanCopyCtor = typename bool_type<std::is_copy_constructible<Q>::value && !std::is_default_constructible<Q>::value || std::is_pod<Q>::value>;
+    using CanCopyCtor = bool_type<std::is_copy_constructible<Q>::value || std::is_pod<Q>::value>;
 
     template <typename Q>
-    using CanMemcpy = typename bool_type<std::is_pod<Q>::value || std::is_trivially_copyable<Q>::value>;
+    using CanMemcpy = bool_type<std::is_pod<Q>::value || std::is_trivially_copyable<Q>::value>;
 
-    T *mFrist, *mLast, *mCurrent;
+    T *mFirst, *mLast, *mCurrent;
 public:
-    vector(int size = 0) : mFrist(nullptr), mLast(nullptr), mCurrent(nullptr) {
+    vector(int size = 0) : mFirst(nullptr), mLast(nullptr), mCurrent(nullptr) {
         resize(size);
     }
 
     ~vector() {
-        delete[] mFrist;
+        for (T * iter = mFirst; iter < mCurrent; ++iter) {
+            iter->~T();
+        }
+
+        operator delete(mFirst);
     }
 
+    vector(const vector<T> & other): vector(other.size()) {
+        other.copy_range(mFirst);
+        mCurrent = mFirst + other.size();
+    }
 
+    vector & operator=(const vector<T> & other) {
+        if (this == &other) {
+            return *this;
+        }
+
+        for (T * iter = mFirst; iter < mCurrent; ++iter) {
+            iter->~T();
+        }
+        
+        mCurrent = mFirst;
+        resize(other.size());
+        other.copy_range(mFirst);
+        mCurrent = mFirst + other.size();
+
+        return *this;
+    }
+
+    vector(vector<T> && other): vector(0) {
+        std::swap(mFirst, other.mFirst);
+        std::swap(mCurrent, other.mCurrent);
+        std::swap(mLast, other.mLast);
+    }
+
+    vector & operator=(vector<T> && other) {
+        std::swap(mFirst, other.mFirst);
+        std::swap(mCurrent, other.mCurrent);
+        std::swap(mLast, other.mLast);
+    }
 
     template <typename Q = T>
     void push_back(const typename std::enable_if<CanCopyCtor<Q>::value, Q>::type & val) {
@@ -48,7 +84,7 @@ public:
 
         assert(mCurrent <= mLast);
 
-        new(mCurrent++)Q(std::move(val));
+        new(mCurrent++)Q(val);
     }
 
     template <typename Q = T>
@@ -59,33 +95,43 @@ public:
         assert(mCurrent <= mLast);
 
         new(mCurrent)Q();
-        mCurrent->operator=(std::move(val));
+        mCurrent->operator=(val);
 
         ++mCurrent;
     }
 
-    template <typename ...Q>
-    void emplace_back(Q && ...args) {
+    // should work, no idea...
+    /*
+    template <typename ...ArgsTypes>
+    void emplace_back(ArgsTypes && ...args) {
         resize(size() + 1);
 
         assert(mCurrent <= mLast);
 
-        new(mCurrent++)T(std::forward<Q...>(args...));
+        new(mCurrent++)T(std::forward<ArgsTypes>(args)...);
     }
+    */
 
     void pop_back() {
-        assert(mCurrent > mFrist);
+        assert(mCurrent > mFirst);
         mCurrent->~T();
         --mCurrent;
     }
 
-
     int size() const {
-        return mCurrent - mFrist;
+        return mCurrent - mFirst;
     }
 
     int capacity() const {
-        return mLast - mFrist;
+        return mLast - mFirst;
+    }
+
+    const T & operator[](int idx) const {
+        return mFirst + idx;
+    }
+
+    T & operator[](int idx) {
+        return mFirst + idx;
     }
 
 private:
@@ -99,35 +145,65 @@ private:
         assert(newSize > size());
 
         T * newRange = reinterpret_cast<T*>(operator new(newSize * sizeof(T)));
+
         move_range(newRange);
+
+        for (T * iter = mFirst; iter < mCurrent; ++iter) {
+            iter->~T();
+        }
 
         mCurrent = newRange + size();
         mLast = newRange + newSize;
 
-        delete[] mFrist;
-        mFrist = newRange;
+        operator delete(mFirst);
+        mFirst = newRange;
     }
 
 
+    // copy data
+
+    template <typename Q = T>
+    void copy_range(typename std::enable_if<CanMemcpy<Q>::value, Q>::type * newStart) const {
+        move_range(newStart);
+    }
+
+    template <typename Q = T>
+    void copy_range(typename std::enable_if<!CanMemcpy<Q>::value && CanCopyCtor<Q>::value, Q>::type * newStart) const {
+
+        for (Q * iter = mFirst; iter < mCurrent; ++iter) {
+            new(newStart++)Q(*iter);
+        }
+    }
+
+    template <typename Q = T>
+    void copy_range(typename std::enable_if<!CanMemcpy<Q>::value && !CanCopyCtor<Q>::value && CanDefaultAssign<Q>::value, Q>::type * newStart) const {
+
+        for (Q * iter = mFirst; iter < mCurrent; ++iter) {
+            new(newStart)Q();
+            newStart->operator=(*iter);
+        }
+    }
+
+
+    // move data
+
     template <typename Q = T>
     void move_range(typename std::enable_if<CanMemcpy<Q>::value, Q>::type * newStart) {
-        memcpy(newStart, mFrist, size() * sizeof(Q));
+        memcpy(newStart, mFirst, size() * sizeof(Q));
     }
 
     template <typename Q = T>
     void move_range(typename std::enable_if<!CanMemcpy<Q>::value && CanCopyCtor<Q>::value, Q>::type * newStart) {
 
-        Q * iter = mFrist;
-        for (int c = size(); c >= 0; --c) {
-            new(newStart++)Q(std::move(*(iter++)));
+        for (Q * iter = mFirst; iter < mCurrent; ++iter) {
+            new(newStart++)Q(std::move(*iter));
         }
     }
 
     template <typename Q = T>
     void move_range(typename std::enable_if<!CanMemcpy<Q>::value && !CanCopyCtor<Q>::value && CanDefaultAssign<Q>::value, Q>::type * newStart) {
 
-        Q * iter = mFrist;
-        for (int c = size(); c >= 0; --c) {
+        for (Q * iter = mFirst; iter < mCurrent; ++iter) {
             new(newStart)Q();
             *(newStart++) = std::move(*(iter++));
         }

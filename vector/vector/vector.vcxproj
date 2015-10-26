@@ -64,6 +64,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\TieredVector.hpp" />
     <ClInclude Include="..\vector.hpp" />
   </ItemGroup>
   <ItemGroup>

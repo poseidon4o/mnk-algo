@@ -1,7 +1,5 @@
 #include <vector>
 
-using namespace std;
-
 class SolidDeque {
 public:
 	SolidDeque(const int size)
@@ -47,7 +45,7 @@ private:
 	}
 
 private:
-	vector<int> m_data;
+	std::vector<int> m_data;
 	int m_head;
 	int m_tail;
 };
@@ -60,7 +58,7 @@ public:
 		, m_data(element_count / deque_size, deque_size)
 	{
 		if (element_count - (deque_size * m_data.size()) > 0) {
-			m_data.emplace_back(move(SolidDeque(deque_size)));
+			m_data.emplace_back(std::move(SolidDeque(deque_size)));
 		}
 		for (int c = 0; c < element_count; c++) {
 			const int idx = deque_idx(c);
@@ -89,11 +87,5 @@ private:
 
 private:
 	const int deque_size;
-	vector<SolidDeque> m_data;
+	std::vector<SolidDeque> m_data;
 };
-
-typedef TieredVector Sequence;
-
-int main() {
-	return 0;
-}
